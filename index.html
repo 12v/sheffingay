@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .map {
+            height: 400px;
+            flex: 1;
+        }
+        .map-wide {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map-container">
+        <div id="map1" class="map"></div>
+        <div id="map2" class="map"></div>
+        <div id="map3" class="map-wide"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map1 = L.map('map1', { detectRetina: true }).setView([51.582776206423226, -0.10331678916117665], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map1);
+
+        var map2 = L.map('map2', { detectRetina: true }).setView([53.381094117089965, -1.4700787246415332], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map2);
+
+        // var map3 = L.map('map3', { detectRetina: true }).setView([0, 0], 1);
+        // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        //     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        // }).addTo(map3);
+
+        const getMeters = (map) => {
+            const y = map.getSize().y / 2;
+
+            const maxMeters = map.distance(
+                map.containerPointToLatLng([0, y]),
+                map.containerPointToLatLng([100, y]));
+
+            return maxMeters;
+        }
+
+        let viewboxLayer1, viewboxLayer2;
+
+        function updateViewbox() {
+            // if (viewboxLayer1) {
+            //     map3.removeLayer(viewboxLayer1);
+            // }
+
+            // if (viewboxLayer2) {
+            //     map3.removeLayer(viewboxLayer2);
+            // }
+
+            // const bounds1 = map1.getBounds();
+            // const bounds2 = map2.getBounds();
+            // viewboxLayer1 = L.rectangle(bounds1, {color: "#ff7800", weight: 1}).addTo(map3);
+            // viewboxLayer2 = L.rectangle(bounds2, {color: "#00ff78", weight: 1}).addTo(map3);
+        }
+
+        updateViewbox();
+
+        let syncingMap1 = false;
+        let syncingMap2 = false;
+
+        map1.on('moveend', function() {
+            if (syncingMap1){
+                return;
+            }
+            syncingMap2 = true;
+            map2.options.zoomSnap = 0;
+
+            const meters1 = getMeters(map1);
+            const meters2 = getMeters(map2);
+
+            const ratio = meters2 / meters1;
+
+            var zoomLevel = map2.getZoom();
+            const newZoomLevel = map2.getScaleZoom(ratio, zoomLevel);
+            map2.setZoom(newZoomLevel, {animate: false});
+
+            syncingMap2 = false;
+            map2.options.zoomSnap = 1;
+
+            updateViewbox();
+        });
+
+        map2.on('moveend', function() {
+            if (syncingMap2){
+                return;
+            }
+            syncingMap1 = true;
+            map1.options.zoomSnap = 0;
+
+            const meters1 = getMeters(map1);
+            const meters2 = getMeters(map2);
+
+            const ratio = meters1 / meters2;
+
+            var zoomLevel = map1.getZoom();
+            const newZoomLevel = map1.getScaleZoom(ratio, zoomLevel);
+            map1.setZoom(newZoomLevel, {animate: false});
+
+            syncingMap1 = false;
+            map1.options.zoomSnap = 1;
+            updateViewbox();
+        });
+
+        L.control.scale().addTo(map1);
+        L.control.scale().addTo(map2);
+    </script>
+</body>
+
+</html>
